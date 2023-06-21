@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestBENiteco2.Commands.ProductCommands;
@@ -23,7 +24,8 @@ public sealed class ProductController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetProducts()
+    [Authorize]
+    public async Task<IActionResult> GetAllProducts()
     {
         var result = await _context.Products
             .ProjectTo<ProductResponse>(_mapper.ConfigurationProvider).ToListAsync();
@@ -31,6 +33,7 @@ public sealed class ProductController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateProduct(CreateProductCommand command)
     {
         var product = new Product

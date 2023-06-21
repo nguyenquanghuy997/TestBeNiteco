@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestBENiteco2.Commands;
@@ -6,6 +8,7 @@ using TestBENiteco2.Commands.OrderCommands;
 using TestBENiteco2.DataContext;
 using TestBENiteco2.Enums;
 using TestBENiteco2.Models;
+using TestBENiteco2.Response;
 
 namespace TestBENiteco2.Controllers;
 
@@ -14,14 +17,17 @@ namespace TestBENiteco2.Controllers;
 public sealed class OrderController : ControllerBase
 {
     private readonly NitecoContext _context;
+    private readonly IMapper _mapper;
 
-    public OrderController(NitecoContext context)
+    public OrderController(NitecoContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     [HttpGet]
-    public async Task<ActionResult> GetOrders(string searchKey, string orderBy, SortedDirection order, int? pageNumber)
+    [Authorize]
+    public async Task<ActionResult> GetAllOrders(string searchKey, string orderBy, SortedDirection order, int? pageNumber)
     {
         var query = _context.Orders
             .AsNoTracking();
@@ -36,12 +42,13 @@ public sealed class OrderController : ControllerBase
             query = query.OrderByWithDynamic(orderBy, x => x.OrderDate, order);
         }
 
-        var results = await PaginatedList<Order>.CreateAsync(query.Include(a => a.Product).Include(a => a.Customer),
+        var results = await PaginatedList<OrderResponse>.CreateAsync(query.ProjectTo<OrderResponse>(_mapper.ConfigurationProvider),
             pageNumber ?? 1, 6);
         return Ok(results);
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Order>> CreateOrder(CreateOrderCommand item)
     {
         var itemProduct = _context.Products.FirstOrDefault(x => x.Id == Guid.Parse(item.ProductId));

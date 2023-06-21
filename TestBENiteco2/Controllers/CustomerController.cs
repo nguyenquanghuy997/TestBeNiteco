@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TestBENiteco2.Commands.CustomerCommands;
 using TestBENiteco2.DataContext;
 using TestBENiteco2.Models;
+using TestBENiteco2.Response;
 
 namespace TestBENiteco2.Controllers;
 
@@ -11,20 +15,24 @@ namespace TestBENiteco2.Controllers;
 public sealed class CustomerController : ControllerBase
 {
     private readonly NitecoContext _context;
+    private readonly IMapper _mapper;
 
-    public CustomerController(NitecoContext context)
+    public CustomerController(NitecoContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
     
     [HttpGet]
-    public async Task<IActionResult> GetCustomers()
+    [Authorize]
+    public async Task<IActionResult> GetAllCustomers()
     {
-        var result = await _context.Customers.Include(a => a.Orders).ToListAsync();
+        var result = await _context.Customers.ProjectTo<CustomerResponse>(_mapper.ConfigurationProvider).ToListAsync();
         return Ok(result);
     }
     
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateCustomer(CreateCustomerCommand command)
     {
         var customer = new Customer
