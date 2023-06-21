@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\TestBENiteco2.props" />
+</Project>
